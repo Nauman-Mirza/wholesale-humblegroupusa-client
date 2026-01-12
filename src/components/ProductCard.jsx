@@ -13,12 +13,12 @@ export default function ProductCard({ subCategory, categoryName, brandName, bran
     if (!subCategory.price) return '$0.00';
     
     if (subCategory.price_type === 'single') {
-      return `$${subCategory.price.amount?.toFixed(2) || '0.00'}`;
+      return `$${Number(subCategory.price.amount || 0).toFixed(2)}`;
     }
     
     if (subCategory.price_type === 'range') {
-      const min = subCategory.price.min?.toFixed(2) || '0.00';
-      const max = subCategory.price.max?.toFixed(2) || '0.00';
+      const min = Number(subCategory.price.min || 0).toFixed(2);
+      const max = Number(subCategory.price.max || 0).toFixed(2);
       return `$${min} – $${max}`;
     }
     
@@ -36,12 +36,12 @@ export default function ProductCard({ subCategory, categoryName, brandName, bran
 
   return (
     <div className="product-card" onClick={handleClick}>
-      <div className="product-image-wrapper">
+      <div className="product-card-image">
         {image ? (
           <img 
             src={image} 
             alt={subCategory.name}
-            className="product-image"
+            loading="lazy"
           />
         ) : (
           <div className="product-placeholder">
@@ -49,10 +49,12 @@ export default function ProductCard({ subCategory, categoryName, brandName, bran
           </div>
         )}
       </div>
-      <div className="product-info">
-        <div className="product-category">{categoryName || brandName}</div>
-        <div className="product-name">{subCategory.name}</div>
-        <div className="product-price">{formatPrice()}</div>
+      <div className="product-card-info">
+        {(categoryName || brandName) && (
+          <div className="product-card-category">{categoryName || brandName}</div>
+        )}
+        <h3 className="product-card-name">{subCategory.name}</h3>
+        <div className="product-card-price">{formatPrice()}</div>
       </div>
     </div>
   );

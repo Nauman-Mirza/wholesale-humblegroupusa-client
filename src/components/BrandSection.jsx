@@ -1,17 +1,16 @@
 import ProductCard from './ProductCard';
 
 export default function BrandSection({ brand }) {
-  // Collect all subcategories from all categories
   const allSubCategories = [];
-  
-  if (brand.categories) {
-    brand.categories.forEach(category => {
-      if (category.sub_categories) {
-        category.sub_categories.forEach(sub => {
+
+  if (brand.categories && brand.categories.length > 0) {
+    brand.categories.forEach((category) => {
+      if (category.sub_categories && category.sub_categories.length > 0) {
+        category.sub_categories.forEach((subCat) => {
           allSubCategories.push({
-            ...sub,
+            ...subCat,
             categoryName: category.name,
-            categoryId: category._id || category.id,
+            brandName: brand.name,
           });
         });
       }
@@ -23,25 +22,15 @@ export default function BrandSection({ brand }) {
   }
 
   return (
-    <section className="brand-section">
-      <div className="brand-header">
-        <h2 className="brand-title">{brand.name}</h2>
-        {brand.description && (
-          <p className="brand-description">{brand.description}</p>
-        )}
-      </div>
-      
-      <div className="products-grid">
-        {allSubCategories.map((subCategory) => (
-          <ProductCard
-            key={subCategory._id || subCategory.id}
-            subCategory={subCategory}
-            categoryName={subCategory.categoryName}
-            brandName={brand.name}
-            brandId={brand._id || brand.id}
-          />
-        ))}
-      </div>
-    </section>
+    <div className="product-grid">
+      {allSubCategories.map((subCategory) => (
+        <ProductCard
+          key={subCategory._id || subCategory.id}
+          subCategory={subCategory}
+          categoryName={subCategory.categoryName}
+          brandName={subCategory.brandName}
+        />
+      ))}
+    </div>
   );
 }

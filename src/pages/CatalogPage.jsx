@@ -60,6 +60,18 @@ export default function CatalogPage() {
   return (
     <>
       <Header />
+      
+      {/* Hero Cover Section */}
+      <section className="hero-cover">
+        <img 
+          src="/cover.jpg" 
+          alt="Welcome to our catalog" 
+          onError={(e) => {
+            e.target.style.display = 'none';
+          }}
+        />
+      </section>
+
       <main className="container">
         {brands.length === 0 ? (
           <div className="empty-state">
@@ -68,17 +80,20 @@ export default function CatalogPage() {
           </div>
         ) : (
           brands.map((brand) => (
-            <BrandSection key={brand._id || brand.id} brand={brand} />
+            <div key={brand._id || brand.id} className="brand-wrapper">
+              <div className="brand-header">
+                <h2 className="brand-title">{brand.name}</h2>
+                {brand.description && (
+                  <p className="brand-description">{brand.description}</p>
+                )}
+              </div>
+              <BrandSection brand={brand} />
+            </div>
           ))
         )}
         
         {pagination && pagination.last_page > 1 && (
-          <div className="pagination" style={{ 
-            display: 'flex', 
-            justifyContent: 'center', 
-            gap: '12px', 
-            padding: '40px 0' 
-          }}>
+          <div className="pagination">
             {Array.from({ length: pagination.last_page }, (_, i) => i + 1).map((page) => (
               <button
                 key={page}
