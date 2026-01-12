@@ -1110,3 +1110,146 @@ img {
   opacity: 0.6;
   cursor: not-allowed;
 }
+
+/* Signup Page */
+.signup-page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f5f5f5;
+  padding: 40px 20px;
+}
+
+.signup-container {
+  width: 100%;
+  max-width: 700px;
+  padding: 40px;
+  background: var(--bg-white);
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+.signup-title {
+  font-size: 24px;
+  font-weight: 600;
+  color: var(--text-dark);
+  margin-bottom: 8px;
+  text-align: center;
+}
+
+.signup-subtitle {
+  font-size: 14px;
+  color: var(--text-light);
+  margin-bottom: 24px;
+  text-align: center;
+}
+
+.form-section {
+  margin-bottom: 28px;
+  padding-bottom: 24px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.form-section:last-of-type {
+  border-bottom: none;
+}
+
+.form-section-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-dark);
+  margin-bottom: 16px;
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+}
+
+@media (max-width: 600px) {
+  .form-row {
+    grid-template-columns: 1fr;
+  }
+}
+
+.form-hint {
+  display: block;
+  font-size: 12px;
+  color: var(--text-light);
+  margin-top: 4px;
+}
+
+/* Checkbox styles */
+.checkbox-group {
+  margin-bottom: 12px;
+}
+
+.checkbox-label {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-size: 14px;
+  color: var(--text-dark);
+  cursor: pointer;
+}
+
+.checkbox-label input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  margin-top: 2px;
+  cursor: pointer;
+  accent-color: var(--primary-olive);
+}
+
+/* Signature input */
+.signature-input {
+  font-family: 'Brush Script MT', cursive, serif;
+  font-size: 20px;
+  font-style: italic;
+}
+
+/* Signup button */
+.btn-signup {
+  width: 100%;
+  padding: 14px 24px;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--bg-white);
+  background: #1a3a3a;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: var(--transition);
+  margin-top: 8px;
+}
+
+.btn-signup:hover {
+  background: #0f2828;
+}
+
+.btn-signup:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Links */
+.signup-link,
+.login-link {
+  text-align: center;
+  font-size: 14px;
+  color: var(--text-light);
+  margin-top: 20px;
+}
+
+.signup-link a,
+.login-link a {
+  color: var(--primary-olive);
+  text-decoration: underline;
+}
+
+.signup-link a:hover,
+.login-link a:hover {
+  color: var(--primary-olive-dark);
+}

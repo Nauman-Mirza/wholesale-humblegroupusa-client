@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
 export default function LoginPage() {
@@ -13,6 +13,7 @@ export default function LoginPage() {
   const location = useLocation();
   
   const from = location.state?.from?.pathname || '/';
+  const successMessage = location.state?.message || '';
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -36,6 +37,10 @@ export default function LoginPage() {
           <img src="/HGU-logo-1536x743.png" alt="Humble Group USA" />
         </div>
         
+        {successMessage && (
+          <div className="success-message">{successMessage}</div>
+        )}
+        
         {error && (
           <div className="error-message">{error}</div>
         )}
@@ -43,7 +48,7 @@ export default function LoginPage() {
         <form onSubmit={handleSubmit}>
           <div className="form-group">
             <label className="form-label" htmlFor="email">
-              email address <span className="required">*</span>
+              Username or email address <span className="required">*</span>
             </label>
             <input
               id="email"
@@ -76,6 +81,10 @@ export default function LoginPage() {
           >
             {loading ? 'Logging in...' : 'Log in'}
           </button>
+
+          <p className="signup-link">
+            Don't have an account? <Link to="/signup">Sign up</Link>
+          </p>
         </form>
       </div>
     </div>
