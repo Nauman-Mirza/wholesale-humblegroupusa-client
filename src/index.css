@@ -1965,3 +1965,34 @@ img {
   background: var(--text-light);
 }
 
+/* Selected variant indicator */
+.pdp-selected-variant {
+  font-size: 13px;
+  color: var(--primary-olive);
+  margin-bottom: 12px;
+  padding: 8px 12px;
+  background: rgba(139, 139, 75, 0.08);
+  border-radius: 4px;
+  display: inline-block;
+}
+
+.pdp-selected-variant strong {
+  font-weight: 600;
+}
+
+/* Image source indicator */
+.pdp-image-source {
+  font-size: 11px;
+  color: var(--text-light);
+  text-align: center;
+  margin-top: 12px;
+  padding: 8px;
+  background: var(--bg-light);
+  border-radius: 4px;
+}
+
+.pdp-image-source strong {
+  color: var(--primary-olive);
+  font-weight: 600;
+}
+

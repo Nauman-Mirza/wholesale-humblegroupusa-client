@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useLocation, Link, useNavigate } from 'react-router-dom';
-import { Search, X, Check, Minus, Plus, ChevronRight, ShoppingBag, Package, Truck, Shield } from 'lucide-react';
+import { Search, X, Check, Minus, Plus, ChevronRight, ShoppingBag, Package } from 'lucide-react';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 import Loading from '../components/Loading';
@@ -59,20 +59,36 @@ export default function SubCategoryPage() {
     return `${STORAGE_URL}/${path}`;
   };
 
+  const selectedProductData = products.find(p => p._id === selectedProduct);
+
+  const getDisplayImages = () => {
+    if (selectedProductData && selectedProductData.images && selectedProductData.images.length > 0) {
+      return selectedProductData.images.map(img => getImageUrl(img)).filter(Boolean);
+    }
+    return (subCategory?.images || []).map(img => getImageUrl(img)).filter(Boolean);
+  };
+
+  const images = getDisplayImages();
+
+  const handleProductChange = (productId) => {
+    setSelectedProduct(productId);
+    setSelectedImage(0);
+    setImageLoaded(false);
+  };
+
   const handleAddToCart = () => {
     if (!selectedProduct) {
       alert('Please select a flavor');
       return;
     }
 
-    const product = products.find(p => p._id === selectedProduct);
-    if (!product) return;
+    if (!selectedProductData) return;
 
     const cartItem = {
-      ...product,
+      ...selectedProductData,
       subCategoryName: subCategory?.name,
-      brandName: product.brand?.name || brandName,
-      categoryName: product.category?.name || categoryName,
+      brandName: selectedProductData.brand?.name || brandName,
+      categoryName: selectedProductData.category?.name || categoryName,
     };
 
     addToCart(cartItem, quantity);
@@ -117,6 +133,10 @@ export default function SubCategoryPage() {
   }
 
   const formatPrice = () => {
+    if (selectedProductData) {
+      return `$${Number(selectedProductData.price || 0).toFixed(2)}`;
+    }
+    
     if (!subCategory?.price) return '$0.00';
     
     if (subCategory.price_type === 'single') {
@@ -132,16 +152,15 @@ export default function SubCategoryPage() {
     return '$0.00';
   };
 
-  const images = (subCategory?.images || []).map(img => getImageUrl(img)).filter(Boolean);
-  const selectedProductData = products.find(p => p._id === selectedProduct);
-  const displayCategoryName = categoryName || products[0]?.category?.name || '';
-  const displayBrandName = brandName || products[0]?.brand?.name || '';
+  const displayCategoryName = categoryName || products[0]?.category?.name || subCategory?.category?.name || '';
+  const displayBrandName = brandName || products[0]?.brand?.name || subCategory?.brand?.name || '';
+  const displayTitle = selectedProductData ? selectedProductData.name : subCategory?.name;
+  const displayDescription = selectedProductData?.description || subCategory?.description;
 
   return (
     <>
       <Header />
       <main className="pdp-container">
-        {/* Breadcrumb */}
         <nav className="pdp-breadcrumb">
           <Link to="/">Home</Link>
           <ChevronRight size={14} />
@@ -161,7 +180,6 @@ export default function SubCategoryPage() {
         </nav>
         
         <div className="pdp-layout">
-          {/* Image Gallery */}
           <div className="pdp-gallery">
             <div className="pdp-main-image">
               {images.length > 0 ? (
@@ -169,7 +187,7 @@ export default function SubCategoryPage() {
                   <div className={`image-skeleton ${imageLoaded ? 'hidden' : ''}`} />
                   <img 
                     src={images[selectedImage]} 
-                    alt={subCategory?.name}
+                    alt={displayTitle}
                     className={`main-img ${imageLoaded ? 'loaded' : ''}`}
                     onLoad={() => setImageLoaded(true)}
                   />
@@ -201,39 +219,41 @@ export default function SubCategoryPage() {
                       setImageLoaded(false);
                     }}
                   >
-                    <img src={img} alt={`${subCategory?.name} view ${index + 1}`} />
+                    <img src={img} alt={`${displayTitle} view ${index + 1}`} />
                   </button>
                 ))}
               </div>
             )}
           </div>
 
-          {/* Product Info */}
           <div className="pdp-info">
-            {/* Brand Badge */}
             {displayBrandName && (
               <div className="pdp-brand-badge">{displayBrandName}</div>
             )}
 
-            {/* Title */}
             <h1 className="pdp-title">{subCategory?.name}</h1>
+
+            {selectedProductData && (
+              <div className="pdp-selected-variant">
+                Selected: <strong>{selectedProductData.name}</strong>
+              </div>
+            )}
             
-            {/* Price */}
             <div className="pdp-price-block">
               <span className="pdp-price">{formatPrice()}</span>
-              <span className="pdp-price-note">Wholesale pricing</span>
+              <span className="pdp-price-note">
+                {selectedProductData ? 'Unit price' : 'Wholesale pricing'}
+              </span>
             </div>
             
-            {/* Description */}
-            {subCategory?.description && (
+            {displayDescription && (
               <div className="pdp-description">
-                <p>{subCategory.description}</p>
+                <p>{displayDescription}</p>
               </div>
             )}
 
             <div className="pdp-divider" />
 
-            {/* Flavor Selector */}
             {products.length > 0 && (
               <div className="pdp-variant-block">
                 <label className="pdp-label">
@@ -244,7 +264,7 @@ export default function SubCategoryPage() {
                   <select
                     className={`pdp-select ${selectedProduct ? 'selected' : ''}`}
                     value={selectedProduct}
-                    onChange={(e) => setSelectedProduct(e.target.value)}
+                    onChange={(e) => handleProductChange(e.target.value)}
                   >
                     <option value="">Choose a flavor...</option>
                     {products.map((product) => (
@@ -258,7 +278,6 @@ export default function SubCategoryPage() {
               </div>
             )}
 
-            {/* Quantity & Add to Cart */}
             <div className="pdp-actions">
               <div className="pdp-quantity">
                 <label className="pdp-label">Quantity</label>
@@ -302,7 +321,6 @@ export default function SubCategoryPage() {
               </button>
             </div>
 
-            {/* Success Message */}
             {addedToCart && (
               <div className="pdp-success-toast">
                 <div className="toast-icon">
@@ -317,7 +335,6 @@ export default function SubCategoryPage() {
 
             <div className="pdp-divider" />
 
-            {/* Product Meta */}
             <div className="pdp-meta">
               {selectedProductData?.sku && (
                 <div className="pdp-meta-item">
@@ -334,35 +351,18 @@ export default function SubCategoryPage() {
                 <Link to="/" className="meta-val meta-link">{displayBrandName || 'N/A'}</Link>
               </div>
             </div>
-
-            {/* Trust Badges */}
-            <div className="pdp-trust">
-              <div className="trust-item">
-                <Truck size={20} />
-                <span>Fast Shipping</span>
-              </div>
-              <div className="trust-item">
-                <Shield size={20} />
-                <span>Secure Checkout</span>
-              </div>
-              <div className="trust-item">
-                <Package size={20} />
-                <span>Quality Guaranteed</span>
-              </div>
-            </div>
           </div>
         </div>
       </main>
       <Footer />
 
-      {/* Image Modal */}
       {showModal && images.length > 0 && (
         <div className="pdp-modal" onClick={() => setShowModal(false)}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
             <button className="modal-close-btn" onClick={() => setShowModal(false)}>
               <X size={24} />
             </button>
-            <img src={images[selectedImage]} alt={subCategory?.name} />
+            <img src={images[selectedImage]} alt={displayTitle} />
             {images.length > 1 && (
               <div className="modal-thumbnails">
                 {images.map((img, index) => (
