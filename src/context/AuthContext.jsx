@@ -9,16 +9,51 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Check for stored auth on mount
+    initializeAuth();
+  }, []);
+
+  const initializeAuth = async () => {
     const storedToken = localStorage.getItem('token');
     const storedUser = localStorage.getItem('user');
     
     if (storedToken && storedUser) {
       setToken(storedToken);
       setUser(JSON.parse(storedUser));
+      
+      // Fetch fresh user data to get can_order and other permissions
+      try {
+        await fetchUserData();
+      } catch (err) {
+        console.error('Failed to fetch user data:', err);
+      }
     }
     setLoading(false);
-  }, []);
+  };
+
+  const fetchUserData = async () => {
+    try {
+      const response = await authApi.getUserData();
+      const userData = response.data?.data?.data || response.data?.data || response.data;
+      
+      if (userData?.user) {
+        const enrichedUser = {
+          id: userData.user._id || userData.user.id,
+          email: userData.user.email,
+          company: userData.user.company_name,
+          phone: userData.user.phone,
+          first_name: userData.user.first_name,
+          last_name: userData.user.last_name,
+          is_active: userData.user.is_active,
+          can_order: userData.user.can_order, // Get this from getUserData
+        };
+        
+        localStorage.setItem('user', JSON.stringify(enrichedUser));
+        setUser(enrichedUser);
+      }
+    } catch (err) {
+      console.error('Failed to fetch user data:', err);
+    }
+  };
 
   const login = async (email, password) => {
     const response = await authApi.login(email, password);
@@ -31,6 +66,9 @@ export function AuthProvider({ children }) {
       
       setToken(newToken);
       setUser(userData);
+      
+      // Fetch full user data including can_order
+      await fetchUserData();
       
       return response;
     }
@@ -52,6 +90,7 @@ export function AuthProvider({ children }) {
     isAuthenticated: !!token,
     login,
     logout,
+    refreshUserData: fetchUserData, // Export this in case we need to refresh
   };
 
   return (

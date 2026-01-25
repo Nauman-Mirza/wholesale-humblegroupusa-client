@@ -72,4 +72,22 @@ export const catalogApi = {
   },
 };
 
+// Add location API
+export const locationApi = {
+  getCountries: async () => {
+    const response = await api.get('/countries');
+    return response.data;
+  },
+
+  getStatesByCountry: async (iso2, search = '') => {
+    const response = await api.get('/countries/states', {
+      params: { 
+        iso2,
+        ...(search && { search }),
+      },
+    });
+    return response.data;
+  },
+};
+
 export default api;

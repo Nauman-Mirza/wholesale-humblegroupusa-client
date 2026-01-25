@@ -1996,3 +1996,35 @@ img {
   font-weight: 600;
 }
 
+.order-disabled-notice {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 14px;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 6px;
+  margin-bottom: 16px;
+  color: #991b1b;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.order-disabled-notice svg {
+  flex-shrink: 0;
+  color: #dc2626;
+  width: 16px;
+  height: 16px;
+}
+
+/* Disabled Checkout Button */
+.btn-checkout:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  background: #9ca3af;
+}
+
+.btn-checkout:disabled:hover {
+  background: #9ca3af;
+  transform: none;
+}

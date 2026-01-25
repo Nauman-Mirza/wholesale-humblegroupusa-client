@@ -14,6 +14,12 @@ export default function ProfilePage() {
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
+  // Location data
+  const [countries, setCountries] = useState([]);
+  const [states, setStates] = useState([]);
+  const [loadingCountries, setLoadingCountries] = useState(false);
+  const [loadingStates, setLoadingStates] = useState(false);
+
   const [formData, setFormData] = useState({
     first_name: '',
     last_name: '',
@@ -26,6 +32,9 @@ export default function ProfilePage() {
       address_2: '',
       city: '',
       country: '',
+      country_code: '',
+      state: '',
+      state_code: '',
       postcode: '',
     },
     current_password: '',
@@ -35,13 +44,51 @@ export default function ProfilePage() {
 
   useEffect(() => {
     fetchUserData();
+    fetchCountries();
   }, []);
+
+  const fetchCountries = async () => {
+    try {
+      setLoadingCountries(true);
+      const response = await fetch('https://api.humblegroupusa.com/api/countries');
+      const data = await response.json();
+      if (data.data?.countries) {
+        setCountries(data.data.countries);
+      }
+    } catch (err) {
+      console.error('Failed to load countries:', err);
+    } finally {
+      setLoadingCountries(false);
+    }
+  };
+
+  const fetchStates = async (countryCode) => {
+    if (!countryCode) {
+      setStates([]);
+      return;
+    }
+
+    try {
+      setLoadingStates(true);
+      const response = await fetch(`https://api.humblegroupusa.com/api/countries/states?iso2=${countryCode}`);
+      const data = await response.json();
+      if (data.data?.states) {
+        setStates(data.data.states);
+      } else {
+        setStates([]);
+      }
+    } catch (err) {
+      console.error('Failed to load states:', err);
+      setStates([]);
+    } finally {
+      setLoadingStates(false);
+    }
+  };
 
   const fetchUserData = async () => {
     try {
       setLoading(true);
       const response = await authApi.getUserData();
-      // Handle nested data.data structure
       const userData = response.data?.data?.data || response.data?.data || response.data;
       
       if (userData) {
@@ -61,9 +108,17 @@ export default function ProfilePage() {
             address_2: shipping_address?.address_2 || '',
             city: shipping_address?.city || '',
             country: shipping_address?.country || '',
+            country_code: shipping_address?.country_code || '',
+            state: shipping_address?.state || '',
+            state_code: shipping_address?.state_code || '',
             postcode: shipping_address?.postcode || '',
           },
         }));
+
+        // Load states if country_code exists
+        if (shipping_address?.country_code) {
+          await fetchStates(shipping_address.country_code);
+        }
       }
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to load profile');
@@ -90,6 +145,42 @@ export default function ProfilePage() {
         [name]: value,
       }));
     }
+  };
+
+  const handleCountryChange = async (e) => {
+    const countryCode = e.target.value;
+    const selectedCountry = countries.find(c => c.code === countryCode);
+
+    setFormData(prev => ({
+      ...prev,
+      shipping_address: {
+        ...prev.shipping_address,
+        country_code: countryCode,
+        country: selectedCountry?.name || '',
+        state: '',
+        state_code: '',
+      },
+    }));
+
+    if (countryCode) {
+      await fetchStates(countryCode);
+    } else {
+      setStates([]);
+    }
+  };
+
+  const handleStateChange = (e) => {
+    const stateName = e.target.value;
+    const selectedState = states.find(s => s.name === stateName);
+
+    setFormData(prev => ({
+      ...prev,
+      shipping_address: {
+        ...prev.shipping_address,
+        state: stateName,
+        state_code: selectedState?.code || '',
+      },
+    }));
   };
 
   const handleSubmit = async (e) => {
@@ -165,6 +256,7 @@ export default function ProfilePage() {
                     className="form-input"
                     value={formData.first_name}
                     onChange={handleChange}
+                    required
                   />
                 </div>
                 <div className="form-group">
@@ -175,6 +267,7 @@ export default function ProfilePage() {
                     className="form-input"
                     value={formData.last_name}
                     onChange={handleChange}
+                    required
                   />
                 </div>
                 <div className="form-group">
@@ -185,6 +278,7 @@ export default function ProfilePage() {
                     className="form-input"
                     value={formData.email}
                     onChange={handleChange}
+                    required
                   />
                 </div>
                 <div className="form-group">
@@ -195,6 +289,7 @@ export default function ProfilePage() {
                     className="form-input"
                     value={formData.phone}
                     onChange={handleChange}
+                    required
                   />
                 </div>
                 <div className="form-group">
@@ -205,6 +300,7 @@ export default function ProfilePage() {
                     className="form-input"
                     value={formData.company_name}
                     onChange={handleChange}
+                    required
                   />
                 </div>
                 <div className="form-group">
@@ -232,6 +328,7 @@ export default function ProfilePage() {
                     className="form-input"
                     value={formData.shipping_address.address_1}
                     onChange={handleChange}
+                    required
                   />
                 </div>
                 <div className="form-group full-width">
@@ -245,6 +342,50 @@ export default function ProfilePage() {
                   />
                 </div>
                 <div className="form-group">
+                  <label className="form-label">Country</label>
+                  <select
+                    className="form-input"
+                    value={formData.shipping_address.country_code}
+                    onChange={handleCountryChange}
+                    disabled={loadingCountries}
+                    required
+                  >
+                    <option value="">
+                      {loadingCountries ? 'Loading countries...' : 'Select a country'}
+                    </option>
+                    {countries.map((country) => (
+                      <option key={country.code} value={country.code}>
+                        {country.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="form-group">
+                  <label className="form-label">State / Province</label>
+                  <select
+                    className="form-input"
+                    value={formData.shipping_address.state}
+                    onChange={handleStateChange}
+                    disabled={!formData.shipping_address.country_code || loadingStates}
+                    required
+                  >
+                    <option value="">
+                      {!formData.shipping_address.country_code
+                        ? 'Select country first'
+                        : loadingStates
+                        ? 'Loading states...'
+                        : states.length === 0
+                        ? 'No states available'
+                        : 'Select a state'}
+                    </option>
+                    {states.map((state, index) => (
+                      <option key={index} value={state.name}>
+                        {state.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="form-group">
                   <label className="form-label">City</label>
                   <input
                     type="text"
@@ -252,20 +393,11 @@ export default function ProfilePage() {
                     className="form-input"
                     value={formData.shipping_address.city}
                     onChange={handleChange}
+                    required
                   />
                 </div>
                 <div className="form-group">
-                  <label className="form-label">Country</label>
-                  <input
-                    type="text"
-                    name="shipping_address.country"
-                    className="form-input"
-                    value={formData.shipping_address.country}
-                    onChange={handleChange}
-                  />
-                </div>
-                <div className="form-group">
-                  <label className="form-label">Postcode</label>
+                  <label className="form-label">Postcode / ZIP</label>
                   <input
                     type="text"
                     name="shipping_address.postcode"

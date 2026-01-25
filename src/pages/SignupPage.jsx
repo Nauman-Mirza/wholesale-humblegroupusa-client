@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { authApi } from '../api';
+import { authApi, locationApi } from '../api';
 import { Eye, EyeOff } from 'lucide-react';
 
 export default function SignupPage() {
@@ -9,6 +9,12 @@ export default function SignupPage() {
   const [error, setError] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
+  // Location data
+  const [countries, setCountries] = useState([]);
+  const [states, setStates] = useState([]);
+  const [loadingCountries, setLoadingCountries] = useState(false);
+  const [loadingStates, setLoadingStates] = useState(false);
 
   const [formData, setFormData] = useState({
     first_name: '',
@@ -24,6 +30,9 @@ export default function SignupPage() {
       address_2: '',
       city: '',
       country: '',
+      country_code: '',
+      state: '',
+      state_code: '',
       postcode: '',
     },
     agree_min_order: false,
@@ -33,18 +42,98 @@ export default function SignupPage() {
     signature: '',
   });
 
+  // Fetch countries on mount
+  useEffect(() => {
+    fetchCountries();
+  }, []);
+
+  // Fetch states when country changes
+  useEffect(() => {
+    if (formData.shipping_address.country_code) {
+      fetchStates(formData.shipping_address.country_code);
+    } else {
+      setStates([]);
+      setFormData(prev => ({
+        ...prev,
+        shipping_address: {
+          ...prev.shipping_address,
+          state: '',
+          state_code: '',
+        },
+      }));
+    }
+  }, [formData.shipping_address.country_code]);
+
+  const fetchCountries = async () => {
+    try {
+      setLoadingCountries(true);
+      const response = await locationApi.getCountries();
+      if (response.data?.countries) {
+        setCountries(response.data.countries);
+      }
+    } catch (err) {
+      console.error('Failed to load countries:', err);
+    } finally {
+      setLoadingCountries(false);
+    }
+  };
+
+  const fetchStates = async (iso2) => {
+    try {
+      setLoadingStates(true);
+      const response = await locationApi.getStatesByCountry(iso2);
+      if (response.data?.states) {
+        setStates(response.data.states);
+      }
+    } catch (err) {
+      console.error('Failed to load states:', err);
+      setStates([]);
+    } finally {
+      setLoadingStates(false);
+    }
+  };
+
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
 
     if (name.startsWith('shipping_address.')) {
       const field = name.split('.')[1];
-      setFormData(prev => ({
-        ...prev,
-        shipping_address: {
-          ...prev.shipping_address,
-          [field]: value,
-        },
-      }));
+      
+      // Handle country selection
+      if (field === 'country_code') {
+        const selectedCountry = countries.find(c => c.code === value);
+        setFormData(prev => ({
+          ...prev,
+          shipping_address: {
+            ...prev.shipping_address,
+            country_code: value,
+            country: selectedCountry?.name || '',
+            state: '',
+            state_code: '',
+          },
+        }));
+      }
+      // Handle state selection
+      else if (field === 'state') {
+        const selectedState = states.find(s => s.name === value);
+        setFormData(prev => ({
+          ...prev,
+          shipping_address: {
+            ...prev.shipping_address,
+            state: value,
+            state_code: selectedState?.code || '',
+          },
+        }));
+      }
+      else {
+        setFormData(prev => ({
+          ...prev,
+          shipping_address: {
+            ...prev.shipping_address,
+            [field]: value,
+          },
+        }));
+      }
     } else {
       setFormData(prev => ({
         ...prev,
@@ -283,6 +372,60 @@ export default function SignupPage() {
             <div className="form-row">
               <div className="form-group">
                 <label className="form-label">
+                  Country <span className="required">*</span>
+                </label>
+                <select
+                  name="shipping_address.country_code"
+                  className="form-input"
+                  value={formData.shipping_address.country_code}
+                  onChange={handleChange}
+                  required
+                  disabled={loadingCountries}
+                >
+                  <option value="">
+                    {loadingCountries ? 'Loading countries...' : 'Select a country'}
+                  </option>
+                  {countries.map((country) => (
+                    <option key={country.code} value={country.code}>
+                      {country.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">
+                  State / Province <span className="required">*</span>
+                </label>
+                <select
+                  name="shipping_address.state"
+                  className="form-input"
+                  value={formData.shipping_address.state}
+                  onChange={handleChange}
+                  required
+                  disabled={!formData.shipping_address.country_code || loadingStates}
+                >
+                  <option value="">
+                    {!formData.shipping_address.country_code 
+                      ? 'Select country first'
+                      : loadingStates 
+                      ? 'Loading states...' 
+                      : states.length === 0
+                      ? 'No states available'
+                      : 'Select a state'}
+                  </option>
+                  {states.map((state, index) => (
+                    <option key={index} value={state.name}>
+                      {state.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            <div className="form-row">
+              <div className="form-group">
+                <label className="form-label">
                   City <span className="required">*</span>
                 </label>
                 <input
@@ -295,20 +438,7 @@ export default function SignupPage() {
                 />
               </div>
               <div className="form-group">
-                <label className="form-label">
-                  Country <span className="required">*</span>
-                </label>
-                <input
-                  type="text"
-                  name="shipping_address.country"
-                  className="form-input"
-                  value={formData.shipping_address.country}
-                  onChange={handleChange}
-                  required
-                />
-              </div>
-              <div className="form-group">
-                <label className="form-label">Postcode</label>
+                <label className="form-label">Postcode / ZIP</label>
                 <input
                   type="text"
                   name="shipping_address.postcode"

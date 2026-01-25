@@ -5,30 +5,48 @@ const CartContext = createContext(null);
 export function CartProvider({ children }) {
   const [cart, setCart] = useState([]);
   const [cartCount, setCartCount] = useState(0);
+  const [isLoaded, setIsLoaded] = useState(false);
 
   // Load cart from localStorage on mount
   useEffect(() => {
-    const savedCart = localStorage.getItem('cart');
-    if (savedCart) {
+    const loadCart = () => {
       try {
-        const parsed = JSON.parse(savedCart);
-        setCart(parsed);
+        const savedCart = localStorage.getItem('cart');
+        if (savedCart) {
+          const parsed = JSON.parse(savedCart);
+          if (Array.isArray(parsed)) {
+            setCart(parsed);
+          }
+        }
       } catch (e) {
         console.error('Failed to parse cart:', e);
+        localStorage.removeItem('cart'); // Clear corrupted data
+      } finally {
+        setIsLoaded(true);
       }
-    }
+    };
+
+    loadCart();
   }, []);
 
-  // Save cart to localStorage and update count
+  // Save cart to localStorage and update count whenever cart changes
   useEffect(() => {
-    localStorage.setItem('cart', JSON.stringify(cart));
-    const count = cart.reduce((sum, item) => sum + item.quantity, 0);
-    setCartCount(count);
-  }, [cart]);
+    if (isLoaded) {
+      try {
+        localStorage.setItem('cart', JSON.stringify(cart));
+        const count = cart.reduce((sum, item) => sum + (item.quantity || 0), 0);
+        setCartCount(count);
+      } catch (e) {
+        console.error('Failed to save cart:', e);
+      }
+    }
+  }, [cart, isLoaded]);
 
   const addToCart = (product, quantity = 1) => {
     setCart(prevCart => {
-      const existingIndex = prevCart.findIndex(item => item._id === product._id);
+      const existingIndex = prevCart.findIndex(item => 
+        (item._id || item.id) === (product._id || product.id)
+      );
       
       if (existingIndex >= 0) {
         // Update quantity if item exists
@@ -53,13 +71,15 @@ export function CartProvider({ children }) {
     
     setCart(prevCart =>
       prevCart.map(item =>
-        item._id === productId ? { ...item, quantity } : item
+        (item._id || item.id) === productId ? { ...item, quantity } : item
       )
     );
   };
 
   const removeFromCart = (productId) => {
-    setCart(prevCart => prevCart.filter(item => item._id !== productId));
+    setCart(prevCart => 
+      prevCart.filter(item => (item._id || item.id) !== productId)
+    );
   };
 
   const clearCart = () => {
@@ -69,7 +89,8 @@ export function CartProvider({ children }) {
   const getCartTotal = () => {
     return cart.reduce((total, item) => {
       const price = Number(item.price) || 0;
-      return total + (price * item.quantity);
+      const quantity = Number(item.quantity) || 0;
+      return total + (price * quantity);
     }, 0);
   };
 

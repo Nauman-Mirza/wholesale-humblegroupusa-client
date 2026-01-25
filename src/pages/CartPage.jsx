@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
-import { Trash2, Plus, Minus, ShoppingBag } from 'lucide-react';
+import { Trash2, Plus, Minus, ShoppingBag, AlertCircle } from 'lucide-react';
 import { useCart } from '../context/CartContext';
+import { useAuth } from '../context/AuthContext';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 
@@ -8,12 +9,15 @@ const STORAGE_URL = import.meta.env.VITE_STORAGE_URL || 'http://localhost:8000/s
 
 export default function CartPage() {
   const { cart, updateQuantity, removeFromCart, clearCart, getCartTotal } = useCart();
+  const { user } = useAuth();
 
   const getImageUrl = (path) => {
     if (!path) return null;
     if (path.startsWith('http')) return path;
     return `${STORAGE_URL}/${path}`;
   };
+
+  const canOrder = user?.can_order !== false;
 
   if (cart.length === 0) {
     return (
@@ -157,7 +161,18 @@ export default function CartPage() {
                 <span>${getCartTotal().toFixed(2)}</span>
               </div>
 
-              <button className="btn-checkout">
+              {!canOrder && (
+                <div className="order-disabled-notice">
+                  <AlertCircle size={16} />
+                  <span>Your account does not have ordering permissions. Please contact support to enable checkout.</span>
+                </div>
+              )}
+
+              <button 
+                className="btn-checkout" 
+                disabled={!canOrder}
+                title={!canOrder ? 'Order permissions required' : 'Proceed to checkout'}
+              >
                 Proceed to Checkout
               </button>
 
