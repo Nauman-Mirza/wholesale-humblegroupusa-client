@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Trash2, Plus, Minus, ShoppingBag, AlertCircle } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
@@ -8,6 +8,7 @@ import Footer from '../components/Footer';
 const STORAGE_URL = import.meta.env.VITE_STORAGE_URL || 'http://localhost:8000/storage';
 
 export default function CartPage() {
+  const navigate = useNavigate();
   const { cart, updateQuantity, removeFromCart, clearCart, getCartTotal } = useCart();
   const { user } = useAuth();
 
@@ -171,6 +172,7 @@ export default function CartPage() {
               <button 
                 className="btn-checkout" 
                 disabled={!canOrder}
+                onClick={() => navigate('/checkout')}
                 title={!canOrder ? 'Order permissions required' : 'Proceed to checkout'}
               >
                 Proceed to Checkout

@@ -72,7 +72,6 @@ export const catalogApi = {
   },
 };
 
-// Add location API
 export const locationApi = {
   getCountries: async () => {
     const response = await api.get('/countries');
@@ -86,6 +85,13 @@ export const locationApi = {
         ...(search && { search }),
       },
     });
+    return response.data;
+  },
+};
+
+export const orderApi = {
+  createOrder: async (orderData) => {
+    const response = await api.post('/orders/create', orderData);
     return response.data;
   },
 };

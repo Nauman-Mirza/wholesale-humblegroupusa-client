@@ -8,6 +8,7 @@ import CatalogPage from './pages/CatalogPage';
 import SubCategoryPage from './pages/SubCategoryPage';
 import ProfilePage from './pages/ProfilePage';
 import CartPage from './pages/CartPage';
+import CheckoutPage from './pages/CheckoutPage';
 
 function App() {
   return (
@@ -50,6 +51,15 @@ function App() {
               element={
                 <ProtectedRoute>
                   <CartPage />
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/checkout"
+              element={
+                <ProtectedRoute>
+                  <CheckoutPage />
                 </ProtectedRoute>
               }
             />
