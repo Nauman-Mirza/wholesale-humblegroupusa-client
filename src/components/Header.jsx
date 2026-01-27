@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
-import { ChevronDown, User, LogOut, ShoppingCart } from 'lucide-react';
+import { ChevronDown, User, LogOut, ShoppingCart, Package } from 'lucide-react';
 
 export default function Header() {
   const { user, logout, isAuthenticated } = useAuth();
@@ -24,6 +24,11 @@ export default function Header() {
   const handleViewProfile = () => {
     setDropdownOpen(false);
     navigate('/profile');
+  };
+
+  const handleViewOrders = () => {
+    setDropdownOpen(false);
+    navigate('/orders');
   };
 
   const handleLogout = () => {
@@ -62,6 +67,10 @@ export default function Header() {
                     <button className="dropdown-item" onClick={handleViewProfile}>
                       <User size={16} />
                       <span>View Profile</span>
+                    </button>
+                    <button className="dropdown-item" onClick={handleViewOrders}>
+                      <Package size={16} />
+                      <span>My Orders</span>
                     </button>
                     <button className="dropdown-item" onClick={handleLogout}>
                       <LogOut size={16} />

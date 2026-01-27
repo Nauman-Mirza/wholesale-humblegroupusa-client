@@ -94,6 +94,13 @@ export const orderApi = {
     const response = await api.post('/orders/create', orderData);
     return response.data;
   },
+
+  getOrders: async (page = 1, perPage = 10) => {
+    const response = await api.get('/orders', {
+      params: { page, per_page: perPage },
+    });
+    return response.data;
+  },
 };
 
 export default api;
