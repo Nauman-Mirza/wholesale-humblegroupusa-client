@@ -84,6 +84,18 @@ export default function SubCategoryPage() {
 
     if (!selectedProductData) return;
 
+    // Check if quantity exceeds available stock
+    if (quantity > selectedProductData.quantity) {
+      alert(`Only ${selectedProductData.quantity} units available in stock`);
+      return;
+    }
+
+    // Check if product is out of stock
+    if (selectedProductData.quantity === 0) {
+      alert('This product is currently out of stock');
+      return;
+    }
+
     const cartItem = {
       ...selectedProductData,
       subCategoryName: subCategory?.name,
@@ -99,7 +111,13 @@ export default function SubCategoryPage() {
     }, 2500);
   };
 
-  const incrementQuantity = () => setQuantity(prev => prev + 1);
+  const incrementQuantity = () => {
+      if (selectedProductData && quantity >= selectedProductData.quantity) {
+        alert(`Only ${selectedProductData.quantity} units available in stock`);
+        return;
+      }
+      setQuantity(prev => prev + 1);
+  };
   const decrementQuantity = () => setQuantity(prev => Math.max(1, prev - 1));
 
   if (loading) {
@@ -290,12 +308,21 @@ export default function SubCategoryPage() {
                     <Minus size={18} />
                   </button>
                   <input
-                    type="number"
-                    className="pdp-qty-input"
-                    value={quantity}
-                    onChange={(e) => setQuantity(Math.max(1, parseInt(e.target.value) || 1))}
-                    min="1"
-                  />
+                      type="number"
+                      className="pdp-qty-input"
+                      value={quantity}
+                      onChange={(e) => {
+                        const newQty = Math.max(1, parseInt(e.target.value) || 1);
+                        if (selectedProductData && newQty > selectedProductData.quantity) {
+                          alert(`Only ${selectedProductData.quantity} units available in stock`);
+                          setQuantity(selectedProductData.quantity);
+                        } else {
+                          setQuantity(newQty);
+                        }
+                      }}
+                      min="1"
+                      max={selectedProductData?.quantity || undefined}
+                    />
                   <button className="pdp-qty-btn" onClick={incrementQuantity}>
                     <Plus size={18} />
                   </button>
@@ -303,15 +330,17 @@ export default function SubCategoryPage() {
               </div>
 
               <button 
-                className={`pdp-add-btn ${addedToCart ? 'success' : ''} ${!selectedProduct ? 'disabled' : ''}`}
+                className={`pdp-add-btn ${addedToCart ? 'success' : ''} ${!selectedProduct || (selectedProductData && selectedProductData.quantity === 0) ? 'disabled' : ''}`}
                 onClick={handleAddToCart}
-                disabled={addedToCart || !selectedProduct}
+                disabled={addedToCart || !selectedProduct || (selectedProductData && selectedProductData.quantity === 0)}
               >
                 {addedToCart ? (
                   <>
                     <Check size={20} />
                     Added to Cart!
                   </>
+                ) : selectedProductData && selectedProductData.quantity === 0 ? (
+                  <>Out of Stock</>
                 ) : (
                   <>
                     <ShoppingBag size={20} />
