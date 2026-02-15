@@ -93,88 +93,93 @@ export default function CheckoutPage() {
   };
 
   const handlePlaceOrder = async () => {
-    setLoading(true);
-    setError('');
+  setLoading(true);
+  setError('');
 
-    // Validate attachment is present
-    if (!attachment) {
-      setError('Please upload a purchase order or invoice document');
-      setLoading(false);
-      return;
+  // Validate attachment is present
+  if (!attachment) {
+    setError('Please upload a purchase order or invoice document');
+    setLoading(false);
+    return;
+  }
+
+  try {
+    // Validate cart items have required fields
+    const invalidItems = cart.filter(item => 
+      !item.warehence_product_id || !item.sku || !item.quantity
+    );
+
+    if (invalidItems.length > 0) {
+      throw new Error('Some cart items are missing required information. Please refresh your cart.');
     }
 
-    try {
-      // Validate cart items have required fields
-      const invalidItems = cart.filter(item => 
-        !item.warehence_product_id || !item.sku || !item.quantity
-      );
+    // Prepare order items
+    const items = cart.map(item => ({
+      warehence_product_id: parseInt(item.warehence_product_id),
+      quantity: parseInt(item.quantity),
+      sku: String(item.sku),
+    }));
 
-      if (invalidItems.length > 0) {
-        throw new Error('Some cart items are missing required information. Please refresh your cart.');
-      }
+    const orderPayload = {
+      user_id: user.id,
+      total: parseFloat(getCartTotal().toFixed(2)),
+      items,
+      attachment,
+    };
 
-      // Prepare order items
-      const items = cart.map(item => ({
-        warehence_product_id: parseInt(item.warehence_product_id),
-        quantity: parseInt(item.quantity),
-        sku: String(item.sku),
-      }));
+    console.log('Order Payload:', {
+      user_id: orderPayload.user_id,
+      total: orderPayload.total,
+      items: orderPayload.items,
+      attachment: attachment?.name,
+    });
 
-      const orderPayload = {
-        user_id: user.id,
-        total: parseFloat(getCartTotal().toFixed(2)),
-        items,
-        attachment, // Add file here
-      };
+    const response = await orderApi.createOrder(orderPayload);
 
-      console.log('Order Payload:', {
-        user_id: orderPayload.user_id,
-        total: orderPayload.total,
-        items: orderPayload.items,
-        attachment: attachment?.name,
-      });
+    console.log('Order Response:', response);
 
-      const response = await orderApi.createOrder(orderPayload);
+    // ✅ More robust success check
+    const isSuccess = 
+      response?.status === 'success' || 
+      response?.data?.order || 
+      response?.data?.warehence;
 
-      console.log('Order Response:', response);
-
-      // Check for success in various response formats
-      if (response.data || response.status === 'success') {
-        setOrderData(response.data);
-        setSuccess(true);
-        clearCart();
-      } else {
-        throw new Error(response.message || 'Failed to create order');
-      }
-    } catch (err) {
-      console.error('Order creation error:', err);
-      console.error('Error response:', err.response?.data);
-      
-      // Extract detailed error message
-      let errorMsg = 'Failed to place order. Please try again.';
-      
-      if (err.response?.data) {
-        const errorData = err.response.data;
-        
-        // Check for validation errors
-        if (errorData.errors) {
-          // Laravel validation errors format
-          const errorMessages = Object.entries(errorData.errors)
-            .map(([field, messages]) => `${field}: ${Array.isArray(messages) ? messages[0] : messages}`)
-            .join(', ');
-          errorMsg = errorMessages || errorData.message;
-        } else if (errorData.message) {
-          errorMsg = errorData.message;
-        }
-      } else if (err.message) {
-        errorMsg = err.message;
-      }
-      
-      setError(errorMsg);
-    } finally {
-      setLoading(false);
+    if (isSuccess) {
+      setOrderData(response.data);
+      clearCart(); // Clear cart
+      setSuccess(true);
+    } else {
+      throw new Error(response?.message || 'Failed to create order');
     }
-  };
+  } catch (err) {
+    console.error('Order creation error:', err);
+    console.error('Error response:', err.response?.data);
+    
+    // Extract detailed error message
+    let errorMsg = 'Failed to place order. Please try again.';
+    
+    if (err.response?.data) {
+      const errorData = err.response.data;
+      
+      // Check for validation errors
+      if (errorData.errors) {
+        // Laravel validation errors format
+        const errorMessages = Object.entries(errorData.errors)
+          .map(([field, messages]) => `${field}: ${Array.isArray(messages) ? messages[0] : messages}`)
+          .join(', ');
+        errorMsg = errorMessages || errorData.message;
+      } else if (errorData.message) {
+        errorMsg = errorData.message;
+      }
+    } else if (err.message) {
+      errorMsg = err.message;
+    }
+    
+    setError(errorMsg);
+  } finally {
+    setLoading(false);
+  }
+};
 
   const getImageUrl = (path) => {
     if (!path) return null;
