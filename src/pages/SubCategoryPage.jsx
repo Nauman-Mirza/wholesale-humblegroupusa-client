@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useLocation, Link, useNavigate } from 'react-router-dom';
-import { Search, X, Check, Minus, Plus, ChevronRight, ShoppingBag, Package } from 'lucide-react';
+import { Search, X, Check, Minus, Plus, ChevronRight, ShoppingBag, Package, AlertCircle } from 'lucide-react';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 import Loading from '../components/Loading';
@@ -13,7 +13,7 @@ export default function SubCategoryPage() {
   const { id } = useParams();
   const location = useLocation();
   const navigate = useNavigate();
-  const { addToCart } = useCart();
+  const { addToCart, getCartItemQuantity } = useCart();
   
   const [subCategory, setSubCategory] = useState(location.state?.subCategory || null);
   const [products, setProducts] = useState([]);
@@ -24,6 +24,7 @@ export default function SubCategoryPage() {
   const [showModal, setShowModal] = useState(false);
   const [addedToCart, setAddedToCart] = useState(false);
   const [imageLoaded, setImageLoaded] = useState(false);
+  const [inventoryMessage, setInventoryMessage] = useState(null);
   
   const categoryName = location.state?.categoryName || '';
   const brandName = location.state?.brandName || '';
@@ -74,25 +75,65 @@ export default function SubCategoryPage() {
     setSelectedProduct(productId);
     setSelectedImage(0);
     setImageLoaded(false);
+    setInventoryMessage(null);
+    
+    // Reset quantity to 1 when changing product
+    setQuantity(1);
+  };
+
+  // Get available stock (DB quantity - already in cart)
+  const getAvailableStock = () => {
+    if (!selectedProductData) return 0;
+    const inCart = getCartItemQuantity(selectedProductData._id);
+    return Math.max(0, selectedProductData.quantity - inCart);
+  };
+
+  const showInventoryMessage = (message, type = 'warning') => {
+    setInventoryMessage({ message, type });
+    setTimeout(() => {
+      setInventoryMessage(null);
+    }, 4000);
   };
 
   const handleAddToCart = () => {
     if (!selectedProduct) {
-      alert('Please select a flavor');
+      showInventoryMessage('Please select a flavor', 'warning');
       return;
     }
 
     if (!selectedProductData) return;
 
-    // Check if quantity exceeds available stock
-    if (quantity > selectedProductData.quantity) {
-      alert(`Only ${selectedProductData.quantity} units available in stock`);
-      return;
-    }
+    const availableStock = getAvailableStock();
+    const inCart = getCartItemQuantity(selectedProductData._id);
 
     // Check if product is out of stock
     if (selectedProductData.quantity === 0) {
-      alert('This product is currently out of stock');
+      showInventoryMessage('This product is currently out of stock', 'error');
+      return;
+    }
+
+    // Check if no more stock available (all in cart)
+    if (availableStock === 0) {
+      showInventoryMessage(
+        `Cannot add more - all ${selectedProductData.quantity} units already in cart`,
+        'error'
+      );
+      return;
+    }
+
+    // Check if quantity exceeds available stock
+    if (quantity > availableStock) {
+      if (inCart > 0) {
+        showInventoryMessage(
+          `Cannot add ${quantity} - only ${availableStock} more available (${inCart} in cart)`,
+          'error'
+        );
+      } else {
+        showInventoryMessage(
+          `Cannot add ${quantity} - only ${availableStock} available`,
+          'error'
+        );
+      }
       return;
     }
 
@@ -112,12 +153,26 @@ export default function SubCategoryPage() {
   };
 
   const incrementQuantity = () => {
-      if (selectedProductData && quantity >= selectedProductData.quantity) {
-        alert(`Only ${selectedProductData.quantity} units available in stock`);
-        return;
+    const availableStock = getAvailableStock();
+    
+    if (quantity >= availableStock) {
+      const inCart = getCartItemQuantity(selectedProductData._id);
+      if (inCart > 0) {
+        showInventoryMessage(
+          `Cannot add more - ${availableStock} more available (${inCart} already in cart)`,
+          'warning'
+        );
+      } else {
+        showInventoryMessage(
+          `Cannot add more - only ${availableStock} available`,
+          'warning'
+        );
       }
-      setQuantity(prev => prev + 1);
+      return;
+    }
+    setQuantity(prev => prev + 1);
   };
+
   const decrementQuantity = () => setQuantity(prev => Math.max(1, prev - 1));
 
   if (loading) {
@@ -174,6 +229,9 @@ export default function SubCategoryPage() {
   const displayBrandName = brandName || products[0]?.brand?.name || subCategory?.brand?.name || '';
   const displayTitle = selectedProductData ? selectedProductData.name : subCategory?.name;
   const displayDescription = selectedProductData?.description || subCategory?.description;
+
+  const availableStock = selectedProductData ? getAvailableStock() : null;
+  const inCartQty = selectedProductData ? getCartItemQuantity(selectedProductData._id) : 0;
 
   return (
     <>
@@ -296,6 +354,14 @@ export default function SubCategoryPage() {
               </div>
             )}
 
+            {/* Inventory message */}
+            {inventoryMessage && (
+              <div className={`pdp-inventory-message ${inventoryMessage.type}`}>
+                <AlertCircle size={18} />
+                <span>{inventoryMessage.message}</span>
+              </div>
+            )}
+
             <div className="pdp-actions">
               <div className="pdp-quantity">
                 <label className="pdp-label">Quantity</label>
@@ -308,21 +374,34 @@ export default function SubCategoryPage() {
                     <Minus size={18} />
                   </button>
                   <input
-                      type="number"
-                      className="pdp-qty-input"
-                      value={quantity}
-                      onChange={(e) => {
-                        const newQty = Math.max(1, parseInt(e.target.value) || 1);
-                        if (selectedProductData && newQty > selectedProductData.quantity) {
-                          alert(`Only ${selectedProductData.quantity} units available in stock`);
-                          setQuantity(selectedProductData.quantity);
+                    type="number"
+                    className="pdp-qty-input"
+                    value={quantity}
+                    onChange={(e) => {
+                      const newQty = Math.max(1, parseInt(e.target.value) || 1);
+                      const availableStock = getAvailableStock();
+                      
+                      if (newQty > availableStock) {
+                        const inCart = getCartItemQuantity(selectedProductData._id);
+                        if (inCart > 0) {
+                          showInventoryMessage(
+                            `Cannot add ${newQty} - only ${availableStock} more available (${inCart} in cart)`,
+                            'warning'
+                          );
                         } else {
-                          setQuantity(newQty);
+                          showInventoryMessage(
+                            `Cannot add ${newQty} - only ${availableStock} available`,
+                            'warning'
+                          );
                         }
-                      }}
-                      min="1"
-                      max={selectedProductData?.quantity || undefined}
-                    />
+                        setQuantity(availableStock || 1);
+                      } else {
+                        setQuantity(newQty);
+                      }
+                    }}
+                    min="1"
+                    max={availableStock || undefined}
+                  />
                   <button className="pdp-qty-btn" onClick={incrementQuantity}>
                     <Plus size={18} />
                   </button>
@@ -330,16 +409,16 @@ export default function SubCategoryPage() {
               </div>
 
               <button 
-                className={`pdp-add-btn ${addedToCart ? 'success' : ''} ${!selectedProduct || (selectedProductData && selectedProductData.quantity === 0) ? 'disabled' : ''}`}
+                className={`pdp-add-btn ${addedToCart ? 'success' : ''} ${!selectedProduct || availableStock === 0 ? 'disabled' : ''}`}
                 onClick={handleAddToCart}
-                disabled={addedToCart || !selectedProduct || (selectedProductData && selectedProductData.quantity === 0)}
+                disabled={addedToCart || !selectedProduct || availableStock === 0}
               >
                 {addedToCart ? (
                   <>
                     <Check size={20} />
                     Added to Cart!
                   </>
-                ) : selectedProductData && selectedProductData.quantity === 0 ? (
+                ) : availableStock === 0 ? (
                   <>Out of Stock</>
                 ) : (
                   <>

@@ -94,6 +94,14 @@ export function CartProvider({ children }) {
     }, 0);
   };
 
+  // Get quantity of specific product in cart
+  const getCartItemQuantity = (productId) => {
+    const item = cart.find(item => 
+      (item._id || item.id) === productId
+    );
+    return item ? item.quantity : 0;
+  };
+
   return (
     <CartContext.Provider value={{
       cart,
@@ -103,6 +111,7 @@ export function CartProvider({ children }) {
       removeFromCart,
       clearCart,
       getCartTotal,
+      getCartItemQuantity,
     }}>
       {children}
     </CartContext.Provider>
