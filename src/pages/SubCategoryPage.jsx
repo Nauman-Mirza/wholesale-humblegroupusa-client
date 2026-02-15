@@ -76,8 +76,6 @@ export default function SubCategoryPage() {
     setSelectedImage(0);
     setImageLoaded(false);
     setInventoryMessage(null);
-    
-    // Reset quantity to 1 when changing product
     setQuantity(1);
   };
 
@@ -106,34 +104,22 @@ export default function SubCategoryPage() {
     const availableStock = getAvailableStock();
     const inCart = getCartItemQuantity(selectedProductData._id);
 
-    // Check if product is out of stock
-    if (selectedProductData.quantity === 0) {
-      showInventoryMessage('This product is currently out of stock', 'error');
-      return;
-    }
-
-    // Check if no more stock available (all in cart)
-    if (availableStock === 0) {
+    // ONLY show message if out of stock AND items already in cart
+    if (selectedProductData.quantity === 0 && inCart > 0) {
       showInventoryMessage(
-        `Cannot add more - all ${selectedProductData.quantity} units already in cart`,
+        `This item is out of stock. You have ${inCart} unit${inCart > 1 ? 's' : ''} in your cart.`,
         'error'
       );
       return;
     }
 
-    // Check if quantity exceeds available stock
-    if (quantity > availableStock) {
-      if (inCart > 0) {
-        showInventoryMessage(
-          `Cannot add ${quantity} - only ${availableStock} more available (${inCart} in cart)`,
-          'error'
-        );
-      } else {
-        showInventoryMessage(
-          `Cannot add ${quantity} - only ${availableStock} available`,
-          'error'
-        );
-      }
+    // Silent check - just prevent if out of stock
+    if (selectedProductData.quantity === 0) {
+      return;
+    }
+
+    // Silent check - prevent if exceeds available
+    if (availableStock === 0 || quantity > availableStock) {
       return;
     }
 
@@ -155,19 +141,8 @@ export default function SubCategoryPage() {
   const incrementQuantity = () => {
     const availableStock = getAvailableStock();
     
+    // Silent - just don't increment if limit reached
     if (quantity >= availableStock) {
-      const inCart = getCartItemQuantity(selectedProductData._id);
-      if (inCart > 0) {
-        showInventoryMessage(
-          `Cannot add more - ${availableStock} more available (${inCart} already in cart)`,
-          'warning'
-        );
-      } else {
-        showInventoryMessage(
-          `Cannot add more - only ${availableStock} available`,
-          'warning'
-        );
-      }
       return;
     }
     setQuantity(prev => prev + 1);
@@ -354,6 +329,14 @@ export default function SubCategoryPage() {
               </div>
             )}
 
+            {/* Inventory message - ONLY shows "out of stock + items in cart" */}
+            {inventoryMessage && (
+              <div className={`pdp-inventory-message ${inventoryMessage.type}`}>
+                <AlertCircle size={18} />
+                <span>{inventoryMessage.message}</span>
+              </div>
+            )}
+
             <div className="pdp-actions">
               <div className="pdp-quantity">
                 <label className="pdp-label">Quantity</label>
@@ -373,13 +356,8 @@ export default function SubCategoryPage() {
                       const newQty = Math.max(1, parseInt(e.target.value) || 1);
                       const availableStock = getAvailableStock();
                       
+                      // Silent correction - no message
                       if (newQty > availableStock) {
-                        const inCart = getCartItemQuantity(selectedProductData._id);
-                        if (inCart > 0) {
-                          showInventoryMessage('Cannot add more to cart', 'warning');
-                        } else {
-                          showInventoryMessage('Requested quantity not available', 'error');
-                        }
                         setQuantity(availableStock || 1);
                       } else {
                         setQuantity(newQty);
