@@ -21,6 +21,8 @@ export default function CheckoutPage() {
   const [success, setSuccess] = useState(false);
   const [orderData, setOrderData] = useState(null);
   const [shippingAddress, setShippingAddress] = useState(null);
+  const [attachment, setAttachment] = useState(null);
+  const [attachmentError, setAttachmentError] = useState('');
 
   useEffect(() => {
     if (cart.length === 0 && !success) {
@@ -52,9 +54,54 @@ export default function CheckoutPage() {
     }
   };
 
+  const handleFileChange = (e) => {
+    const file = e.target.files[0];
+    
+    if (!file) {
+      setAttachment(null);
+      setAttachmentError('');
+      return;
+    }
+    
+    // Validate file type
+    const validTypes = [
+      'application/pdf',
+      'image/jpeg',
+      'image/jpg', 
+      'image/png',
+      'application/msword',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+    ];
+    
+    if (!validTypes.includes(file.type)) {
+      setAttachmentError('File must be PDF, JPG, PNG, DOC, or DOCX');
+      setAttachment(null);
+      e.target.value = '';
+      return;
+    }
+    
+    // Validate file size (10MB max)
+    if (file.size > 10 * 1024 * 1024) {
+      setAttachmentError('File size must not exceed 10 MB');
+      setAttachment(null);
+      e.target.value = '';
+      return;
+    }
+    
+    setAttachmentError('');
+    setAttachment(file);
+  };
+
   const handlePlaceOrder = async () => {
     setLoading(true);
     setError('');
+
+    // Validate attachment is present
+    if (!attachment) {
+      setError('Please upload a purchase order or invoice document');
+      setLoading(false);
+      return;
+    }
 
     try {
       // Validate cart items have required fields
@@ -77,9 +124,15 @@ export default function CheckoutPage() {
         user_id: user.id,
         total: parseFloat(getCartTotal().toFixed(2)),
         items,
+        attachment, // Add file here
       };
 
-      console.log('Order Payload:', JSON.stringify(orderPayload, null, 2));
+      console.log('Order Payload:', {
+        user_id: orderPayload.user_id,
+        total: orderPayload.total,
+        items: orderPayload.items,
+        attachment: attachment?.name,
+      });
 
       const response = await orderApi.createOrder(orderPayload);
 
@@ -294,6 +347,51 @@ export default function CheckoutPage() {
                     </div>
                   </div>
 
+                  {/* ADD THIS NEW SECTION */}
+                  <div className="confirmation-section">
+                    <h3>Attachment <span style={{ color: '#dc2626' }}>*</span></h3>
+                    <div className="form-group">
+                      <input
+                        type="file"
+                        accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
+                        onChange={handleFileChange}
+                        style={{
+                          width: '100%',
+                          padding: '12px',
+                          border: '1px solid #d1d5db',
+                          borderRadius: '8px',
+                          fontSize: '14px',
+                        }}
+                      />
+                      {attachmentError && (
+                        <div style={{ 
+                          color: '#dc2626', 
+                          fontSize: '13px', 
+                          marginTop: '8px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '6px',
+                        }}>
+                          <AlertCircle size={14} />
+                          <span>{attachmentError}</span>
+                        </div>
+                      )}
+                      {attachment && !attachmentError && (
+                        <div style={{ 
+                          color: '#16a34a', 
+                          fontSize: '13px', 
+                          marginTop: '8px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '6px',
+                        }}>
+                          <CheckCircle size={14} />
+                          <span>✓ {attachment.name} ({(attachment.size / 1024 / 1024).toFixed(2)} MB)</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
                   <div className="checkout-actions">
                     <button onClick={() => setStep(1)} className="btn-secondary" disabled={loading}>
                       Back
@@ -301,7 +399,7 @@ export default function CheckoutPage() {
                     <button 
                       onClick={handlePlaceOrder} 
                       className="btn-primary"
-                      disabled={loading}
+                      disabled={loading || !attachment || attachmentError}
                     >
                       {loading ? (
                         <>

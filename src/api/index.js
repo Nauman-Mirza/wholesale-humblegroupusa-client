@@ -91,7 +91,29 @@ export const locationApi = {
 
 export const orderApi = {
   createOrder: async (orderData) => {
-    const response = await api.post('/orders/create', orderData);
+    const formData = new FormData();
+    
+    formData.append('user_id', orderData.user_id);
+    formData.append('total', orderData.total);
+    
+    // Append items
+    orderData.items.forEach((item, index) => {
+      formData.append(`items[${index}][warehence_product_id]`, item.warehence_product_id);
+      formData.append(`items[${index}][quantity]`, item.quantity);
+      formData.append(`items[${index}][sku]`, item.sku);
+    });
+    
+    // Append file attachment
+    if (orderData.attachment) {
+      formData.append('attachment', orderData.attachment);
+    }
+    
+    const response = await api.post('/orders/create', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+    
     return response.data;
   },
 
