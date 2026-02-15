@@ -354,14 +354,6 @@ export default function SubCategoryPage() {
               </div>
             )}
 
-            {/* Inventory message */}
-            {inventoryMessage && (
-              <div className={`pdp-inventory-message ${inventoryMessage.type}`}>
-                <AlertCircle size={18} />
-                <span>{inventoryMessage.message}</span>
-              </div>
-            )}
-
             <div className="pdp-actions">
               <div className="pdp-quantity">
                 <label className="pdp-label">Quantity</label>
@@ -384,15 +376,9 @@ export default function SubCategoryPage() {
                       if (newQty > availableStock) {
                         const inCart = getCartItemQuantity(selectedProductData._id);
                         if (inCart > 0) {
-                          showInventoryMessage(
-                            `Cannot add ${newQty} - only ${availableStock} more available (${inCart} in cart)`,
-                            'warning'
-                          );
+                          showInventoryMessage('Cannot add more to cart', 'warning');
                         } else {
-                          showInventoryMessage(
-                            `Cannot add ${newQty} - only ${availableStock} available`,
-                            'warning'
-                          );
+                          showInventoryMessage('Requested quantity not available', 'error');
                         }
                         setQuantity(availableStock || 1);
                       } else {
