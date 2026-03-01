@@ -11,6 +11,7 @@ export default function BrandSection({ brand }) {
             ...subCat,
             categoryName: category.name,
             brandName: brand.name,
+            brandId: brand._id || brand.id,
           });
         });
       }
@@ -29,6 +30,7 @@ export default function BrandSection({ brand }) {
           subCategory={subCategory}
           categoryName={subCategory.categoryName}
           brandName={subCategory.brandName}
+          brandId={subCategory.brandId}
         />
       ))}
     </div>

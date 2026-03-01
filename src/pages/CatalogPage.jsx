@@ -1,36 +1,33 @@
-import { useState, useEffect } from 'react';
-import { catalogApi } from '../api';
+import { useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
+import { useCatalog } from '../context/CatalogContext';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 import BrandSection from '../components/BrandSection';
 import Loading from '../components/Loading';
 
+const STORAGE_URL = import.meta.env.VITE_STORAGE_URL || 'http://localhost:8000/storage';
+
+const getImageUrl = (path) => {
+  if (!path) return null;
+  if (path.startsWith('http')) return path;
+  return `${STORAGE_URL}/${path}`;
+};
+
 export default function CatalogPage() {
-  const [brands, setBrands] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [pagination, setPagination] = useState(null);
+  const { brands, loading, error, pagination, fetchCatalog } = useCatalog();
+  const location = useLocation();
 
   useEffect(() => {
-    fetchCatalog();
-  }, []);
-
-  const fetchCatalog = async (page = 1) => {
-    try {
-      setLoading(true);
-      const response = await catalogApi.getBrandsWithCategories(page, 20);
-      
-      if (response.data && response.data[0]) {
-        const data = response.data[0];
-        setBrands(data.items || []);
-        setPagination(data.pagination || null);
+    if (!loading && location.hash) {
+      const element = document.getElementById(location.hash.substring(1));
+      if (element) {
+        setTimeout(() => {
+          element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }, 100);
       }
-    } catch (err) {
-      setError(err.response?.data?.message || 'Failed to load catalog');
-    } finally {
-      setLoading(false);
     }
-  };
+  }, [loading, location.hash]);
 
   if (loading) {
     return (
@@ -60,12 +57,12 @@ export default function CatalogPage() {
   return (
     <>
       <Header />
-      
+
       {/* Hero Cover Section */}
       <section className="hero-cover">
-        <img 
-          src="/cover.jpg" 
-          alt="Welcome to our catalog" 
+        <img
+          src="/cover.jpg"
+          alt="Welcome to our catalog"
           onError={(e) => {
             e.target.style.display = 'none';
           }}
@@ -80,8 +77,15 @@ export default function CatalogPage() {
           </div>
         ) : (
           brands.map((brand) => (
-            <div key={brand._id || brand.id} className="brand-wrapper">
+            <div key={brand._id || brand.id} id={`brand-${brand._id || brand.id}`} className="brand-wrapper">
               <div className="brand-header">
+                {brand.image && (
+                  <img
+                    src={getImageUrl(brand.image)}
+                    alt={brand.name}
+                    className="brand-logo"
+                  />
+                )}
                 <h2 className="brand-title">{brand.name}</h2>
                 {brand.description && (
                   <p className="brand-description">{brand.description}</p>
@@ -91,7 +95,7 @@ export default function CatalogPage() {
             </div>
           ))
         )}
-        
+
         {pagination && pagination.last_page > 1 && (
           <div className="pagination">
             {Array.from({ length: pagination.last_page }, (_, i) => i + 1).map((page) => (

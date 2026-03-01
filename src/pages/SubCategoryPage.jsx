@@ -28,6 +28,7 @@ export default function SubCategoryPage() {
   
   const categoryName = location.state?.categoryName || '';
   const brandName = location.state?.brandName || '';
+  const brandId = location.state?.brandId || '';
 
   useEffect(() => {
     fetchProducts();
@@ -217,13 +218,13 @@ export default function SubCategoryPage() {
           <ChevronRight size={14} />
           {displayBrandName && (
             <>
-              <Link to="/">{displayBrandName}</Link>
+              <Link to={brandId ? `/#brand-${brandId}` : '/'}>{displayBrandName}</Link>
               <ChevronRight size={14} />
             </>
           )}
           {displayCategoryName && (
             <>
-              <Link to="/">{displayCategoryName}</Link>
+              <Link to={brandId ? `/#brand-${brandId}` : '/'}>{displayCategoryName}</Link>
               <ChevronRight size={14} />
             </>
           )}
@@ -416,11 +417,11 @@ export default function SubCategoryPage() {
               )}
               <div className="pdp-meta-item">
                 <span className="meta-key">Category</span>
-                <Link to="/" className="meta-val meta-link">{displayCategoryName || 'Uncategorized'}</Link>
+                <Link to={brandId ? `/#brand-${brandId}` : '/'} className="meta-val meta-link">{displayCategoryName || 'Uncategorized'}</Link>
               </div>
               <div className="pdp-meta-item">
                 <span className="meta-key">Brand</span>
-                <Link to="/" className="meta-val meta-link">{displayBrandName || 'N/A'}</Link>
+                <Link to={brandId ? `/#brand-${brandId}` : '/'} className="meta-val meta-link">{displayBrandName || 'N/A'}</Link>
               </div>
             </div>
           </div>
