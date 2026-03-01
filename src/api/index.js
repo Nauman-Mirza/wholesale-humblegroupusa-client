@@ -123,6 +123,15 @@ export const orderApi = {
     });
     return response.data;
   },
+
+  exportOrders: async (dateFrom, dateTo) => {
+    const params = {};
+    if (dateFrom) params.date_from = dateFrom;
+    if (dateTo) params.date_to = dateTo;
+
+    const response = await api.get('/orders/export-data', { params });
+    return response.data;
+  },
 };
 
 export default api;
