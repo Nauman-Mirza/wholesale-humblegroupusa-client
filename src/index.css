@@ -696,7 +696,10 @@ img {
 }
 
 .brand-header {
-  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
   margin-bottom: 28px;
   padding: 28px 16px;
   position: relative;
@@ -713,13 +716,24 @@ img {
   background: var(--primary-olive);
 }
 
+.brand-logo-side {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding-right: 24px;
+  margin-right: 24px;
+  border-right: 1.5px solid #d5d0c8;
+}
+
 .brand-logo {
-  width: 80px;
-  height: 80px;
+  width: 100px;
+  height: 100px;
   object-fit: contain;
-  margin: 0 auto 12px;
-  display: block;
   border-radius: 8px;
+}
+
+.brand-info-side {
+  text-align: left;
 }
 
 .brand-title {
@@ -736,14 +750,47 @@ img {
   font-weight: 300;
   color: #000000;
   max-width: 480px;
-  margin: 0 auto;
+  margin: 0;
   line-height: 1.6;
+}
+
+/* Center content when no logo present */
+.brand-header:not(:has(.brand-logo-side)) {
+  flex-direction: column;
+  text-align: center;
+}
+
+.brand-header:not(:has(.brand-logo-side)) .brand-info-side {
+  text-align: center;
+}
+
+.brand-header:not(:has(.brand-logo-side)) .brand-description {
+  margin: 0 auto;
 }
 
 @media (max-width: 768px) {
   .brand-header {
+    flex-direction: column;
+    text-align: center;
     padding: 20px 12px;
     margin-bottom: 20px;
+  }
+
+  .brand-logo-side {
+    padding-right: 0;
+    margin-right: 0;
+    border-right: none;
+    padding-bottom: 16px;
+    margin-bottom: 16px;
+    border-bottom: 1.5px solid #d5d0c8;
+  }
+
+  .brand-info-side {
+    text-align: center;
+  }
+
+  .brand-description {
+    margin: 0 auto;
   }
 
   .brand-title {

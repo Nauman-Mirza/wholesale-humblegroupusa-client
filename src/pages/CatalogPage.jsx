@@ -80,16 +80,20 @@ export default function CatalogPage() {
             <div key={brand._id || brand.id} id={`brand-${brand._id || brand.id}`} className="brand-wrapper">
               <div className="brand-header">
                 {brand.image && (
-                  <img
-                    src={getImageUrl(brand.image)}
-                    alt={brand.name}
-                    className="brand-logo"
-                  />
+                  <div className="brand-logo-side">
+                    <img
+                      src={getImageUrl(brand.image)}
+                      alt={brand.name}
+                      className="brand-logo"
+                    />
+                  </div>
                 )}
-                <h2 className="brand-title">{brand.name}</h2>
-                {brand.description && (
-                  <p className="brand-description">{brand.description}</p>
-                )}
+                <div className="brand-info-side">
+                  <h2 className="brand-title">{brand.name}</h2>
+                  {brand.description && (
+                    <p className="brand-description">{brand.description}</p>
+                  )}
+                </div>
               </div>
               <BrandSection brand={brand} />
             </div>
