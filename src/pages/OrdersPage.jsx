@@ -4,6 +4,9 @@ import { orderApi } from '../api';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 import Loading from '../components/Loading';
+import * as XLSX from 'xlsx';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 const STORAGE_URL = import.meta.env.VITE_STORAGE_URL || 'http://localhost:8000/storage';
 
@@ -25,6 +28,7 @@ export default function OrdersPage() {
   const [exportDateTo, setExportDateTo] = useState('');
   const [isExporting, setIsExporting] = useState(false);
   const [exportError, setExportError] = useState('');
+  const [exportFormat, setExportFormat] = useState('csv');
 
   useEffect(() => {
     loadOrders();
@@ -45,6 +49,109 @@ export default function OrdersPage() {
     }
   };
 
+  const getExportHeaders = () => [
+    'Order ID', 'Order Total ($)', 'Items Count', 'Order Date',
+    'Customer Name', 'Email', 'Phone', 'Company',
+    'Ship Street 1', 'Ship Street 2', 'Ship City', 'Ship State', 'Ship Postal Code', 'Ship Country',
+    'SKU', 'Product Name', 'Qty', 'Unit Price ($)', 'Line Total ($)',
+  ];
+
+  const getExportRows = (rows) => {
+    const csvRows = [];
+    for (const order of rows) {
+      for (const item of order.items ?? []) {
+        csvRows.push([
+          order.order_id,
+          order.total,
+          order.items_count,
+          order.created_at?.slice(0, 10) ?? '',
+          order.user_name,
+          order.user_email,
+          String(order.user_phone),
+          order.company_name,
+          order.ship_street1,
+          order.ship_street2 ?? '',
+          order.ship_city,
+          order.ship_state,
+          String(order.ship_postal_code),
+          order.ship_country,
+          item.sku,
+          item.product_name,
+          item.quantity,
+          item.default_price,
+          parseFloat((item.quantity * item.default_price).toFixed(2)),
+        ]);
+      }
+    }
+    return csvRows;
+  };
+
+  const getFileName = (ext) =>
+    `my-orders-${exportDateFrom || 'all'}-to-${exportDateTo || 'all'}.${ext}`;
+
+  const exportCSV = (headers, dataRows) => {
+    const escape = (val) => `"${String(val ?? '').replace(/"/g, '""')}"`;
+    const csv = [headers.map(escape).join(','), ...dataRows.map(r => r.map(escape).join(','))].join('\n');
+    const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+    triggerDownload(blob, getFileName('csv'));
+  };
+
+  const exportExcel = (headers, dataRows) => {
+    const wsData = [headers, ...dataRows];
+    const ws = XLSX.utils.aoa_to_sheet(wsData);
+
+    // Auto-size columns
+    const colWidths = headers.map((h, i) => {
+      const maxLen = Math.max(
+        h.length,
+        ...dataRows.map(r => String(r[i] ?? '').length)
+      );
+      return { wch: Math.min(maxLen + 2, 40) };
+    });
+    ws['!cols'] = colWidths;
+
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Orders');
+    const wbOut = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+    const blob = new Blob([wbOut], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    triggerDownload(blob, getFileName('xlsx'));
+  };
+
+  const exportPDF = (headers, dataRows) => {
+    const doc = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'a4' });
+
+    doc.setFontSize(16);
+    doc.text('My Orders', 40, 36);
+    doc.setFontSize(10);
+    doc.setTextColor(100);
+    const dateRange = `${exportDateFrom || 'All'} to ${exportDateTo || 'All'}`;
+    doc.text(`Date Range: ${dateRange}`, 40, 52);
+
+    autoTable(doc, {
+      head: [headers],
+      body: dataRows,
+      startY: 65,
+      styles: { fontSize: 7, cellPadding: 4 },
+      headStyles: { fillColor: [27, 58, 107], textColor: 255, fontStyle: 'bold', fontSize: 7 },
+      alternateRowStyles: { fillColor: [245, 247, 250] },
+      margin: { left: 20, right: 20 },
+      tableWidth: 'auto',
+    });
+
+    doc.save(getFileName('pdf'));
+  };
+
+  const triggerDownload = (blob, filename) => {
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
   const handleExport = async () => {
     setIsExporting(true);
     setExportError('');
@@ -57,56 +164,21 @@ export default function OrdersPage() {
         return;
       }
 
-      const headers = [
-        'Order ID', 'Order Total ($)', 'Items Count', 'Order Date',
-        'Customer Name', 'Email', 'Phone', 'Company',
-        'Ship Street 1', 'Ship Street 2', 'Ship City', 'Ship State', 'Ship Postal Code', 'Ship Country',
-        'SKU', 'Product Name', 'Qty', 'Unit Price ($)', 'Line Total ($)',
-      ];
+      const headers = getExportHeaders();
+      const dataRows = getExportRows(rows);
 
-      const csvRows = [];
-      for (const order of rows) {
-        for (const item of order.items ?? []) {
-          csvRows.push([
-            order.order_id,
-            order.total,
-            order.items_count,
-            order.created_at?.slice(0, 10) ?? '',
-            order.user_name,
-            order.user_email,
-            String(order.user_phone),
-            order.company_name,
-            order.ship_street1,
-            order.ship_street2 ?? '',
-            order.ship_city,
-            order.ship_state,
-            String(order.ship_postal_code),
-            order.ship_country,
-            item.sku,
-            item.product_name,
-            item.quantity,
-            item.default_price,
-            parseFloat((item.quantity * item.default_price).toFixed(2)),
-          ]);
-        }
+      if (exportFormat === 'csv') {
+        exportCSV(headers, dataRows);
+      } else if (exportFormat === 'excel') {
+        exportExcel(headers, dataRows);
+      } else if (exportFormat === 'pdf') {
+        exportPDF(headers, dataRows);
       }
-
-      const escape = (val) => `"${String(val ?? '').replace(/"/g, '""')}"`;
-      const csv = [headers.map(escape).join(','), ...csvRows.map(r => r.map(escape).join(','))].join('\n');
-
-      const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `my-orders-${exportDateFrom || 'all'}-to-${exportDateTo || 'all'}.csv`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(url);
 
       setShowExportModal(false);
       setExportDateFrom('');
       setExportDateTo('');
+      setExportFormat('csv');
     } catch (err) {
       setExportError(err?.response?.data?.message || 'Export failed. Please try again.');
     } finally {
@@ -259,13 +331,63 @@ export default function OrdersPage() {
                     onChange={(e) => setExportDateTo(e.target.value)} />
                 </div>
               </div>
+
+              {/* Export Format Selection */}
+              <div className="export-format-section">
+                <label className="export-format-label">Export Format</label>
+                <div className="export-format-options">
+                  <label className={`export-format-option${exportFormat === 'csv' ? ' active' : ''}`}>
+                    <input
+                      type="radio"
+                      name="exportFormat"
+                      value="csv"
+                      checked={exportFormat === 'csv'}
+                      onChange={(e) => setExportFormat(e.target.value)}
+                    />
+                    <span className="format-icon">📄</span>
+                    <span className="format-details">
+                      <span className="format-name">CSV</span>
+                      <span className="format-desc">Comma-separated values</span>
+                    </span>
+                  </label>
+                  <label className={`export-format-option${exportFormat === 'excel' ? ' active' : ''}`}>
+                    <input
+                      type="radio"
+                      name="exportFormat"
+                      value="excel"
+                      checked={exportFormat === 'excel'}
+                      onChange={(e) => setExportFormat(e.target.value)}
+                    />
+                    <span className="format-icon">📊</span>
+                    <span className="format-details">
+                      <span className="format-name">Excel</span>
+                      <span className="format-desc">XLSX spreadsheet</span>
+                    </span>
+                  </label>
+                  <label className={`export-format-option${exportFormat === 'pdf' ? ' active' : ''}`}>
+                    <input
+                      type="radio"
+                      name="exportFormat"
+                      value="pdf"
+                      checked={exportFormat === 'pdf'}
+                      onChange={(e) => setExportFormat(e.target.value)}
+                    />
+                    <span className="format-icon">📕</span>
+                    <span className="format-details">
+                      <span className="format-name">PDF</span>
+                      <span className="format-desc">Printable document</span>
+                    </span>
+                  </label>
+                </div>
+              </div>
+
               {exportError && <p className="export-error">{exportError}</p>}
             </div>
             <div className="modal-footer">
               <button className="btn-cancel" onClick={() => setShowExportModal(false)}>Cancel</button>
               <button className="btn-export" onClick={handleExport} disabled={isExporting}>
                 <Download size={15} />
-                {isExporting ? 'Exporting...' : 'Download CSV'}
+                {isExporting ? 'Exporting...' : `Download ${exportFormat === 'excel' ? 'XLSX' : exportFormat.toUpperCase()}`}
               </button>
             </div>
           </div>

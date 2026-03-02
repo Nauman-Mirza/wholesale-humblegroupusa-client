@@ -3521,3 +3521,65 @@ img {
 .btn-export:hover:not(:disabled) { background: #2d5fa3; }
 .btn-export:disabled { opacity: 0.6; cursor: not-allowed; }
 
+
+.export-format-section {
+  margin-top: 18px;
+}
+.export-format-label {
+  display: block;
+  font-size: 13px;
+  font-weight: 500;
+  color: #374151;
+  margin-bottom: 8px;
+}
+.export-format-options {
+  display: flex;
+  gap: 10px;
+}
+.export-format-option {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  background: #fff;
+}
+.export-format-option:hover {
+  border-color: #9ca3af;
+  background: #f9fafb;
+}
+.export-format-option.active {
+  border-color: #1b3a6b;
+  background: #f0f4fa;
+  box-shadow: 0 0 0 1px #1b3a6b;
+}
+.export-format-option input[type="radio"] {
+  display: none;
+}
+.format-icon {
+  font-size: 20px;
+  line-height: 1;
+}
+.format-details {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+.format-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: #111827;
+}
+.format-desc {
+  font-size: 11px;
+  color: #6b7280;
+}
+@media (max-width: 500px) {
+  .export-format-options {
+    flex-direction: column;
+  }
+}
