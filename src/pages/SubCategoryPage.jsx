@@ -80,7 +80,8 @@ export default function SubCategoryPage() {
     setQuantity(1);
   };
 
-  // Get available stock (DB quantity - already in cart)
+  // Available stock (DB quantity - already in cart). Used only for validation,
+  // never displayed to the customer.
   const getAvailableStock = () => {
     if (!selectedProductData) return 0;
     const inCart = getCartItemQuantity(selectedProductData._id);
@@ -103,24 +104,13 @@ export default function SubCategoryPage() {
     if (!selectedProductData) return;
 
     const availableStock = getAvailableStock();
-    const inCart = getCartItemQuantity(selectedProductData._id);
 
-    // ONLY show message if out of stock AND items already in cart
-    if (selectedProductData.quantity === 0 && inCart > 0) {
+    // Exceeds what we can fulfill — show a message WITHOUT revealing the actual quantity.
+    if (quantity > availableStock) {
       showInventoryMessage(
-        `This item is out of stock. You have ${inCart} unit${inCart > 1 ? 's' : ''} in your cart.`,
+        "The quantity you've requested isn't available right now. Please reduce the quantity and try again.",
         'error'
       );
-      return;
-    }
-
-    // Silent check - just prevent if out of stock
-    if (selectedProductData.quantity === 0) {
-      return;
-    }
-
-    // Silent check - prevent if exceeds available
-    if (availableStock === 0 || quantity > availableStock) {
       return;
     }
 
@@ -133,21 +123,13 @@ export default function SubCategoryPage() {
 
     addToCart(cartItem, quantity);
     setAddedToCart(true);
-    
+
     setTimeout(() => {
       setAddedToCart(false);
     }, 2500);
   };
 
-  const incrementQuantity = () => {
-    const availableStock = getAvailableStock();
-    
-    // Silent - just don't increment if limit reached
-    if (quantity >= availableStock) {
-      return;
-    }
-    setQuantity(prev => prev + 1);
-  };
+  const incrementQuantity = () => setQuantity(prev => prev + 1);
 
   const decrementQuantity = () => setQuantity(prev => Math.max(1, prev - 1));
 
@@ -205,9 +187,6 @@ export default function SubCategoryPage() {
   const displayBrandName = brandName || products[0]?.brand?.name || subCategory?.brand?.name || '';
   const displayTitle = selectedProductData ? selectedProductData.name : subCategory?.name;
   const displayDescription = selectedProductData?.description || subCategory?.description;
-
-  const availableStock = selectedProductData ? getAvailableStock() : null;
-  const inCartQty = selectedProductData ? getCartItemQuantity(selectedProductData._id) : 0;
 
   return (
     <>
@@ -354,18 +333,9 @@ export default function SubCategoryPage() {
                     className="pdp-qty-input"
                     value={quantity}
                     onChange={(e) => {
-                      const newQty = Math.max(1, parseInt(e.target.value) || 1);
-                      const availableStock = getAvailableStock();
-                      
-                      // Silent correction - no message
-                      if (newQty > availableStock) {
-                        setQuantity(availableStock || 1);
-                      } else {
-                        setQuantity(newQty);
-                      }
+                      setQuantity(Math.max(1, parseInt(e.target.value) || 1));
                     }}
                     min="1"
-                    max={availableStock || undefined}
                   />
                   <button className="pdp-qty-btn" onClick={incrementQuantity}>
                     <Plus size={18} />
@@ -373,18 +343,16 @@ export default function SubCategoryPage() {
                 </div>
               </div>
 
-              <button 
-                className={`pdp-add-btn ${addedToCart ? 'success' : ''} ${!selectedProduct || availableStock === 0 ? 'disabled' : ''}`}
+              <button
+                className={`pdp-add-btn ${addedToCart ? 'success' : ''} ${!selectedProduct ? 'disabled' : ''}`}
                 onClick={handleAddToCart}
-                disabled={addedToCart || !selectedProduct || availableStock === 0}
+                disabled={addedToCart || !selectedProduct}
               >
                 {addedToCart ? (
                   <>
                     <Check size={20} />
                     Added to Cart!
                   </>
-                ) : availableStock === 0 ? (
-                  <>Out of Stock</>
                 ) : (
                   <>
                     <ShoppingBag size={20} />
